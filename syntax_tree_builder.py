@@ -138,7 +138,7 @@ def builder(array, in_braces_count, rule_num, node):
         temp_array1 = []
         temp_array2 = []
         for i in range(0, len(array), 1):
-            if array[i] == ',':
+            if array[i][1] == ',':
                 temp_array1 += temp_array2
                 temp_array2 = []
             temp_array2.append(array[i])
@@ -177,6 +177,8 @@ def builder(array, in_braces_count, rule_num, node):
             temp_array = array
             if array[len(array) - 1][1] == ',':
                 temp_array.pop()
+            temp_array.pop(0)
+            temp_array.pop(0)
             temp_node = Node(num_list.pop(), "expression", node.get_num())
             node.add_child_num(temp_node.get_num())
             builder(temp_array, in_braces_count, 19, temp_node)
@@ -200,8 +202,11 @@ def builder(array, in_braces_count, rule_num, node):
             temp_node = Node(num_list.pop(), "VOID", node.get_num())
             node.add_child_num(temp_node.get_num())
         # if array[0][1] == 'int':
-        else:
+        elif array[0][1] == 'int':
             temp_node = Node(num_list.pop(), "INT", node.get_num())
+            node.add_child_num(temp_node.get_num())
+        else:
+            temp_node = Node(num_list.pop(), array[0][1], node.get_num())
             node.add_child_num(temp_node.get_num())
         return 8
     # fun_declaration -> type_specifier fun_declarator compound_statement | type_specifier fun_declarator ';'
@@ -272,7 +277,7 @@ def builder(array, in_braces_count, rule_num, node):
         temp_array1 = []
         temp_array2 = []
         for i in range(0, len(array), 1):
-            if array[i] == ',':
+            if array[i][1] == ',':
                 temp_array1 += temp_array2
                 temp_array2 = []
             temp_array2.append(array[i])
@@ -366,6 +371,8 @@ def builder(array, in_braces_count, rule_num, node):
             if stat_array:
                 temp_node = Node(num_list.pop(), "statement_list", node.get_num())
                 node.add_child_num(temp_node.get_num())
+                if stat_array[0][1] == 'for':
+                    print stat_array
                 builder(stat_array, in_braces_count + 1, 16, temp_node)
 
             temp_node = Node(num_list.pop(), "CLOSE_PARENTHESIS", node.get_num())
@@ -380,9 +387,9 @@ def builder(array, in_braces_count, rule_num, node):
         temp_array2 = []
         for i in range(0, len(array), 1):
             temp_array2.append(array[i])
-            if array[i][0] == 'OPEN_PARENTHESIS':
+            if array[i][0] == 'OPEN_PARENTHESIS' or array[i][1] == '(':
                 parenthesis_count += 1
-            if array[i][0] == 'CLOSE_PARENTHESIS':
+            if array[i][0] == 'CLOSE_PARENTHESIS' or array[i][1] == ')':
                 parenthesis_count -= 1
 
             if parenthesis_count == in_braces_count:
@@ -406,10 +413,15 @@ def builder(array, in_braces_count, rule_num, node):
                     if not array[i + 1][1] == 'else if' and not array[i + 1][1] == 'else':
                         temp_array1 += temp_array2
                         temp_array2 = []
+
+        # print str(array) + "\n"
+        # debug
         return 16
     # statement -> '{' statement_list '}'  //a solution to the local decl problem
+    #   | function_call -> id '(' declarator_list ')' // solution to function calls within compound_statements
     #   | selection_statement | iteration_statement | assignment_statement | RETURN expression ';'
     if rule_num == 17:
+
         if array[0][1] == '{' and array[len(array) - 1][1] == '}':
             temp_node = Node(num_list.pop(), "OPEN_PARENTHESIS", node.get_num())
             node.add_child_num(temp_node.get_num())
@@ -428,17 +440,17 @@ def builder(array, in_braces_count, rule_num, node):
             temp_node1 = Node(num_list.pop(), "}", node.get_num())
             temp_node.add_child_num(temp_node1.get_num())
             return 17
-        elif array[0][1] == 'if':
+        if array[0][1] == 'if':
             temp_node = Node(num_list.pop(), "selection_statement", node.get_num())
             node.add_child_num(temp_node.get_num())
             builder(array, in_braces_count, 31, temp_node)
             return 17
-        elif array[0][1] == 'while':
+        if array[0][1] == 'while':
             temp_node = Node(num_list.pop(), "iteration_statement", node.get_num())
             node.add_child_num(temp_node.get_num())
             builder(array, in_braces_count, 32, temp_node)
             return 17
-        elif array[0][1] == 'return':
+        if array[0][1] == 'return':
             temp_node = Node(num_list.pop(), "RETURN_statement", node.get_num())
             node.add_child_num(temp_node.get_num())
             temp_node1 = Node(num_list.pop(), "return", node.get_num())
@@ -450,6 +462,37 @@ def builder(array, in_braces_count, rule_num, node):
             temp_node = Node(num_list.pop(), "expression", node.get_num())
             node.add_child_num(temp_node.get_num())
             builder(temp_array, in_braces_count, 19, temp_node)
+
+            temp_node = Node(num_list.pop(), "SEMI", node.get_num())
+            node.add_child_num(temp_node.get_num())
+            temp_node1 = Node(num_list.pop(), ";", node.get_num())
+            temp_node.add_child_num(temp_node1.get_num())
+            return 17
+        # function call debug
+        if array[0][0] == 'ID' and array[1][1] == '(':
+            temp_node1 = Node(num_list.pop(), "IDENTIFIER", node.get_num())
+            node.add_child_num(temp_node1.get_num())
+            temp_node2 = Node(num_list.pop(), str(symbol_table_array[int(array[0][1])]), node.get_num())
+            temp_node1.add_child_num(temp_node2.get_num())
+
+            temp_node = Node(num_list.pop(), "OPEN_PARENTHESIS", node.get_num())
+            node.add_child_num(temp_node.get_num())
+            temp_node1 = Node(num_list.pop(), "(", node.get_num())
+            temp_node.add_child_num(temp_node1.get_num())
+
+            temp_array = array
+            temp_array.pop()
+            temp_array.pop()
+            temp_array.pop(0)
+            temp_array.pop(0)
+            temp_node1 = Node(num_list.pop(), "function_parameter_list", node.get_num())
+            node.add_child_num(temp_node1.get_num())
+            builder(temp_array, parenthesis_count, 36, temp_node1)
+
+            temp_node = Node(num_list.pop(), "CLOSE_PARENTHESIS", node.get_num())
+            node.add_child_num(temp_node.get_num())
+            temp_node1 = Node(num_list.pop(), ")", node.get_num())
+            temp_node.add_child_num(temp_node1.get_num())
 
             temp_node = Node(num_list.pop(), "SEMI", node.get_num())
             node.add_child_num(temp_node.get_num())
@@ -719,6 +762,13 @@ def builder(array, in_braces_count, rule_num, node):
             if array[i][1] == '-':
                 minus_found = True
 
+        # for expression like "- 5"
+        if minus_found and array[0][1] == '-':
+            temp_node = Node(num_list.pop(), "unary_expression", node.get_num())
+            node.add_child_num(temp_node.get_num())
+            builder(array, in_braces_count, 25, temp_node)
+            return 23
+
         if plus_found:
             ae_ended = False
             ae = []
@@ -751,6 +801,7 @@ def builder(array, in_braces_count, rule_num, node):
             for i in range(0, len(array), 1):
                 if array[i][1] == '-':
                     ae_ended = True
+                    continue
                 if not ae_ended:
                     ae.append(array[i])
                 else:
@@ -850,7 +901,7 @@ def builder(array, in_braces_count, rule_num, node):
                 builder(temp_array, in_braces_count, 30, temp_node)
 
                 temp_array2 = array
-                temp_array2.pop()
+                temp_array2.pop(0)
                 temp_node = Node(num_list.pop(), "postfix_expression", node.get_num())
                 node.add_child_num(temp_node.get_num())
                 builder(temp_array2, in_braces_count, 26, temp_node)
@@ -1051,7 +1102,7 @@ def builder(array, in_braces_count, rule_num, node):
         temp_array1 = []
         temp_array2 = []
         for i in range(0, len(array), 1):
-            if array[i] == ',':
+            if array[i][1] == ',':
                 temp_array1 += temp_array2
                 temp_array2 = []
             temp_array2.append(array[i])
@@ -1314,27 +1365,68 @@ def builder(array, in_braces_count, rule_num, node):
         temp_array1 = []
         temp_array2 = []
         for i in range(0, len(array), 1):
-            if array[i] == ',':
+            temp_array2.append(array[i])
+            if array[i][1] == ',':
                 temp_array1 += temp_array2
                 temp_array2 = []
-            temp_array2.append(array[i])
+
         if not temp_array1:
             temp_node2 = Node(num_list.pop(), "declarator", node.get_num())
             node.add_child_num(temp_node2.get_num())
             builder(temp_array2, parenthesis_count, 6, temp_node2)
             return 35
+
+        temp_array1.pop()
         temp_node1 = Node(num_list.pop(), "declarator_list", node.get_num())
         node.add_child_num(temp_node1.get_num())
-        temp_array1.pop()
+        builder(temp_array1, parenthesis_count, 35, temp_node1)
+
         temp_node = Node(num_list.pop(), "COMMA", node.get_num())
         node.add_child_num(temp_node.get_num())
         temp_node1 = Node(num_list.pop(), ",", node.get_num())
         temp_node.add_child_num(temp_node1.get_num())
-        builder(temp_array1, parenthesis_count, 5, temp_node1)
+
         temp_node2 = Node(num_list.pop(), "declarator", node.get_num())
         node.add_child_num(temp_node2.get_num())
         builder(temp_array2, parenthesis_count, 6, temp_node2)
         return 35
+
+    # function_parameter_list -> parameter | function_parameter_list ',' parameter
+    if rule_num == 36:
+        temp_array1 = []
+        temp_array2 = []
+        for i in range(0, len(array), 1):
+            temp_array2.append(array[i])
+            if array[i][1] == ',':
+                temp_array1 += temp_array2
+                temp_array2 = []
+
+        if not temp_array1:
+            temp_node2 = Node(num_list.pop(), "parameter", node.get_num())
+            node.add_child_num(temp_node2.get_num())
+            temp_node = Node(num_list.pop(), array[0][0], node.get_num())
+            temp_node2.add_child_num(temp_node.get_num())
+            temp_node1 = Node(num_list.pop(), array[0][1], node.get_num())
+            temp_node.add_child_num(temp_node1.get_num())
+            return 35
+
+        temp_array1.pop()
+        temp_node1 = Node(num_list.pop(), "function_parameter_list", node.get_num())
+        node.add_child_num(temp_node1.get_num())
+        builder(temp_array1, parenthesis_count, 36, temp_node1)
+
+        temp_node = Node(num_list.pop(), "COMMA", node.get_num())
+        node.add_child_num(temp_node.get_num())
+        temp_node1 = Node(num_list.pop(), ",", node.get_num())
+        temp_node.add_child_num(temp_node1.get_num())
+
+        temp_node2 = Node(num_list.pop(), "parameter", node.get_num())
+        node.add_child_num(temp_node2.get_num())
+        temp_node = Node(num_list.pop(), array[len(array) - 1][0], node.get_num())
+        temp_node2.add_child_num(temp_node.get_num())
+        temp_node1 = Node(num_list.pop(), array[len(array) - 1][1], node.get_num())
+        temp_node.add_child_num(temp_node1.get_num())
+        return 36
 
 builder(token_array, 0, 1, start_node)
 
